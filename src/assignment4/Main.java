@@ -71,9 +71,70 @@ public class Main {
 
         /* Do not alter the code above for your submission. */
         /* Write your code below. */
+
+        String in = "";
+        List<String> commands = new ArrayList<>();
+        while (!in.equals("quit")){
+            System.out.print("Enter Command here:");
+            in = kb.nextLine();
+            String [] command = in.split("\\s+", -2);
+            switch (command[0]){
+                case "show":
+                    Critter.displayWorld();
+                    break;
+                case "make":
+                    if (command.length <2){
+                        System.out.println("Must specify class to make e.g. make Craig.");
+                    } else{
+                        if (command.length == 2) {
+                            try {
+                                for (int i = 0; i < 25; i++) {
+                                    Critter.makeCritter(command[1]);
+                                }
+                                for (int i = 0; i < 100; i++) {
+                                    Critter.makeCritter("Algae");
+                                }
+                            } catch (InvalidCritterException e) {
+                                System.out.println(e.toString());
+                            }
+                        } else {
+                            try{
+                                int count = Integer.parseInt(command[2]);
+                                for (int i=0; i<count; i++){
+                                    Critter.makeCritter(command[1]);
+                                }
+                            } catch (NumberFormatException | InvalidCritterException e){
+                                System.out.println(e.toString());
+                            }
+                        }
+                    }
+                    break;
+                case "step":
+                    if (command.length ==1){
+                        Critter.worldTimeStep();
+                    } else if (command.length == 2){
+                        try {
+                            int count = Integer.parseInt(command[1]);
+                            for (int i=0; i<count; i++){
+                                Critter.worldTimeStep();
+                            }
+                        } catch (NumberFormatException e){
+                            System.out.println("Count is formatted incorrectly");
+                        }
+                    } else{
+                        System.out.println("Arguments for step are incorrectly formatted.");
+                    }
+                    break;
+                case "clear":
+                    Critter.clearWorld();
+                    break;
+            }
+        }
+        /*
         try {
-            Critter.makeCritter(Craig.class.getName());
-            Critter.makeCritter(MyCritter1.class.getName());
+            for (int i=0; i<5; i++){
+                Critter.makeCritter(MyCritter1.class.getName());
+            }
             Critter.makeCritter(Algae.class.getName());
             Critter.makeCritter(Algae.class.getName());
 
@@ -83,6 +144,9 @@ public class Main {
         }
 
         Critter.displayWorld();
+        Critter.worldTimeStep();
+        Critter.displayWorld();
+
         /* Write your code above */
         System.out.flush();
 

@@ -31,6 +31,9 @@ public abstract class Critter {
 
     // Gets the package name.  This assumes that Critter and its subclasses are all in the same package.
     static {
+        for (int i=0; i<Params.world_width*Params.world_height; i++){
+            world.add(new ArrayList<Critter>());
+        }
         myPackage = Critter.class.getPackage().toString().split(" ")[1];
     }
 
@@ -60,35 +63,39 @@ public abstract class Critter {
     private int y_coord;
 
     protected final void walk(int direction) {
-        world.get(convertTo1D(x_coord, y_coord)).remove(this);
-        if (direction == 7 || direction == 0 || direction == 1){
-            x_coord = (x_coord +1)%Params.world_width;
-        }
-        if (direction == 3 || direction ==4 || direction == 6){
-            if (x_coord == 0){
-                x_coord = Params.world_width-1;
-            } else{
-                x_coord--;
-            }
-        }
-        if (direction == 5 || direction == 6 || direction == 7){
-            y_coord = (y_coord + 1)%Params.world_height;
-        }
-        if (direction == 1 || direction == 2 || direction == 3){
-            if (y_coord == 0){
-                y_coord = Params.world_height-1;
-            } else {
-                y_coord--;
-            }
-        }
-        world.get(convertTo1D(x_coord, y_coord)).add(this);
+        move(direction, 1, Params.walk_energy_cost);
     }
 
     protected final void run(int direction) {
+        move(direction, 2, Params.run_energy_cost);
+    }
 
+    private void move(int direction, int distance, int energyCost){
+        world.get(convertTo1D(x_coord, y_coord)).remove(this);
+        if (direction == 7 || direction == 0 || direction == 1){
+            x_coord = (x_coord +distance)%Params.world_width;
+        }
+        if (direction == 3 || direction ==4 || direction == 6){
+            x_coord-=distance;
+            if (x_coord < 0){
+                x_coord+=Params.world_width;
+            }
+        }
+        if (direction == 5 || direction == 6 || direction == 7){
+            y_coord = (y_coord + distance)%Params.world_height;
+        }
+        if (direction == 1 || direction == 2 || direction == 3){
+            y_coord-=distance;
+            if (y_coord<0){
+                y_coord += Params.world_height;
+            }
+        }
+        energy-=energyCost;
+        world.get(convertTo1D(x_coord, y_coord)).add(this);
     }
 
     protected final void reproduce(Critter offspring, int direction) {
+
     }
 
     public abstract void doTimeStep();
@@ -107,13 +114,8 @@ public abstract class Critter {
      * @throws InvalidCritterException
      */
     public static void makeCritter(String critter_class_name) throws InvalidCritterException {
-        if (world.size() != Params.world_height*Params.world_width){
-            for (int i=0; i<Params.world_width*Params.world_height; i++){
-                world.add(new ArrayList<Critter>());
-            }
-        }
         try {
-            Class critterClass = Class.forName(critter_class_name);
+            Class critterClass = Class.forName(myPackage + '.' + critter_class_name);
             Critter critter = (Critter) critterClass.newInstance();
             critter.x_coord = getRandomInt(Params.world_width);
             critter.y_coord = getRandomInt(Params.world_height);
@@ -229,12 +231,25 @@ public abstract class Critter {
      * Clear the world of all critters, dead and alive
      */
     public static void clearWorld() {
-        // Complete this method.
+        population.clear();
+        for (List<Critter> list: world){
+            list.clear();
+        }
     }
 
     public static void worldTimeStep() {
         for (Critter critter : population) {
             critter.doTimeStep();
+            if (critter.energy <=0)
+        }
+
+        for (int i=0; i<world.size(); i++){
+            List<Critter> tile = world.get(i);
+            if (tile.size() >=2){
+                while (tile.size() >=2){
+
+                }
+            }
         }
     }
 
@@ -245,10 +260,10 @@ public abstract class Critter {
             stringBuilder.append('-');
         }
         stringBuilder.append("+\n");
-        for (int i=0; i<Params.world_height; i++){
+        for (int y=0; y<Params.world_height; y++){
             stringBuilder.append('|');
-            for (int j=0; j<Params.world_width; j++){
-                List<Critter> temp = world.get(convertTo1D(i,j));
+            for (int x=0; x<Params.world_width; x++){
+                List<Critter> temp = world.get(convertTo1D(x,y));
                 if (temp.isEmpty()){
                     stringBuilder.append(" ");
                 } else {
@@ -266,51 +281,17 @@ public abstract class Critter {
     }
 
     private static void addToWorld(Critter critter){
-        world.get(critter.y_coord*Params.world_height + critter.x_coord).add(critter);
+        world.get(critter.y_coord*Params.world_width + critter.x_coord).add(critter);
     }
 
     private static int convertTo1D(int x, int y){
-        return y*Params.world_height+x;
+        int result = y*Params.world_width+x;
+        return result;
     }
 
-    /*
-    private static void insertSorted(Critter critter){
-        int idx = 0;
-        if (population.isEmpty()){
-            population.add(critter);
-            return;
-        }
-        for (Critter c: population){
-            if ( (critter.x_coord*Params.world_width + critter.y_coord)
-                    <= (c.x_coord*Params.world_width + c.y_coord) ){
-                population.add(idx, critter);
-                return;
-            }
-            idx++;
-        }
-        population.add(critter);
+    private static void fight(Critter OP1, Critter OP2){
+
     }
-    */
-
-
-    public static void printWorld(){
-        for (List<Critter> list: world){
-            for (Critter critter: list){
-                System.out.println("DEBUG: Critter " + critter.toString() + " added at pos " + critter.x_coord + "," + critter.y_coord);
-            }
-        }
-    }
-
-    /*
-	private Comparator<Critter> comparator = new Comparator<Critter>() {
-        @Override
-        public int compare(Critter o1, Critter o2) {
-            int pos1 = o1.x_coord*Params.world_width + o1.y_coord;
-            int pos2 = o2.x_coord*Params.world_width + o2.y_coord;
-            return pos1-pos2;
-        }
-    };
-    */
 
 }
 
