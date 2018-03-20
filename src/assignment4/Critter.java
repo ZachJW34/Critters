@@ -27,12 +27,16 @@ public abstract class Critter {
     private static String myPackage;
     private static List<Critter> population = new java.util.ArrayList<Critter>();
     private static List<Critter> babies = new java.util.ArrayList<Critter>();
+
     private static List<List<Critter>> world = new ArrayList<>(Params.world_width*Params.world_height);
+    private static List<List<Boolean>> hasWalked = new ArrayList<>(Params.world_width*Params.world_height);
+    private static Critter[] fighters = new Critter[2];
 
     // Gets the package name.  This assumes that Critter and its subclasses are all in the same package.
     static {
         for (int i=0; i<Params.world_width*Params.world_height; i++){
             world.add(new ArrayList<Critter>());
+            hasWalked.add(new ArrayList<Boolean>());
         }
         myPackage = Critter.class.getPackage().toString().split(" ")[1];
     }
@@ -63,39 +67,86 @@ public abstract class Critter {
     private int y_coord;
 
     protected final void walk(int direction) {
-        move(direction, 1, Params.walk_energy_cost);
+        boolean isFighter = (fighters[0] == this || fighters[1] == this);
+        if ( isFighter && checkIfWalked(this)){
+            energy-=Params.walk_energy_cost;
+            return;
+        } else if (isFighter){
+            int prevX = x_coord;
+            int prevY = y_coord;
+            move(this, direction, 1);
+            if (world.get(convertTo1D(x_coord, y_coord)).isEmpty()){
+                x_coord = prevX;
+                y_coord = prevY;
+            } else{
+                x_coord = prevX;
+                y_coord = prevY;
+                energy-=Params.walk_energy_cost;
+                return;
+            }
+        }
+        removeFromWorld(this);
+        move(this, direction, 1);
+        energy-=Params.walk_energy_cost;
+        addToWorld(this);
+        markAsWalked(this);
     }
 
     protected final void run(int direction) {
-        move(direction, 2, Params.run_energy_cost);
+        boolean isFighter = (fighters[0] == this || fighters[1] == this);
+        if ( isFighter && checkIfWalked(this)){
+            energy-=Params.run_energy_cost;
+            return;
+        } else if (isFighter){
+            int prevX = x_coord;
+            int prevY = y_coord;
+            move(this, direction, 2);
+            if (world.get(convertTo1D(x_coord, y_coord)).isEmpty()){
+                x_coord = prevX;
+                y_coord = prevY;
+            } else{
+                x_coord = prevX;
+                y_coord = prevY;
+                energy-=Params.run_energy_cost;
+                return;
+            }
+        }
+        removeFromWorld(this);
+        move(this, direction, 2);
+        energy-=Params.run_energy_cost;
+        addToWorld(this);
+        markAsWalked(this);
     }
 
-    private void move(int direction, int distance, int energyCost){
-        world.get(convertTo1D(x_coord, y_coord)).remove(this);
+    private static void move(Critter critter, int direction, int distance){
         if (direction == 7 || direction == 0 || direction == 1){
-            x_coord = (x_coord +distance)%Params.world_width;
+            critter.x_coord = (critter.x_coord +distance)%Params.world_width;
         }
         if (direction == 3 || direction ==4 || direction == 6){
-            x_coord-=distance;
-            if (x_coord < 0){
-                x_coord+=Params.world_width;
+            critter.x_coord-=distance;
+            if (critter.x_coord < 0){
+                critter.x_coord+=Params.world_width;
             }
         }
         if (direction == 5 || direction == 6 || direction == 7){
-            y_coord = (y_coord + distance)%Params.world_height;
+            critter.y_coord = (critter.y_coord + distance)%Params.world_height;
         }
         if (direction == 1 || direction == 2 || direction == 3){
-            y_coord-=distance;
-            if (y_coord<0){
-                y_coord += Params.world_height;
+            critter.y_coord-=distance;
+            if (critter.y_coord<0){
+                critter.y_coord += Params.world_height;
             }
         }
-        energy-=energyCost;
-        world.get(convertTo1D(x_coord, y_coord)).add(this);
+
     }
 
     protected final void reproduce(Critter offspring, int direction) {
-
+        offspring.energy = this.energy/2;
+        this.energy = (int) Math.ceil((double)this.energy/2);
+        offspring.x_coord = x_coord;
+        offspring.y_coord = y_coord;
+        move(offspring, direction, 1);
+        babies.add(offspring);
     }
 
     public abstract void doTimeStep();
@@ -122,7 +173,8 @@ public abstract class Critter {
             critter.energy = Params.start_energy;
             population.add(critter);
             addToWorld(critter);
-        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
+            hasWalked.get(convertTo1D(critter.x_coord, critter.y_coord));
+        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException | NoClassDefFoundError e) {
             e.printStackTrace();
             throw new InvalidCritterException(critter_class_name);
         }
@@ -240,17 +292,89 @@ public abstract class Critter {
     public static void worldTimeStep() {
         for (Critter critter : population) {
             critter.doTimeStep();
-            if (critter.energy <=0)
         }
 
-        for (int i=0; i<world.size(); i++){
-            List<Critter> tile = world.get(i);
-            if (tile.size() >=2){
-                while (tile.size() >=2){
+        removeDead();
 
+        for (List<Critter> critterList: world){
+            while (critterList.size() >=2){
+                fighters[0] = critterList.get(0);
+                fighters[1] = critterList.get(1);
+                Critter loser = battle(fighters[0], fighters[1]);
+                if (loser != null) {
+                    removeFromWorld(loser);
+                    population.remove(loser);
                 }
+                fighters[0] = null;
+                fighters[1] = null;
             }
         }
+
+        for (Critter critter: babies){
+            addToWorld(critter);
+            population.add(critter);
+        }
+        babies = new ArrayList<>();
+
+        for (int i=0; i<Params.refresh_algae_count; i++){
+            try {
+                makeCritter(Algae.class.getSimpleName());
+            } catch (InvalidCritterException e){
+                e.printStackTrace();
+            }
+        }
+
+        for (Critter critter: population){
+            critter.energy-=Params.rest_energy_cost;
+        }
+
+        removeDead();
+
+    }
+
+    private static Critter battle(Critter A, Critter B){
+        boolean action1 = A.fight(B.toString());
+        boolean action2 = B.fight(A.toString());
+        boolean didOneDie = removeDead();
+        if ((A.x_coord != B.x_coord) || (A.y_coord !=B.y_coord) || didOneDie){
+            return null;
+        }
+
+        int rollA = action1 ? getRandomInt(A.energy) : 0;
+        int rollB = action2 ? getRandomInt(B.energy) : 0;
+
+        if (rollA > rollB){
+            A.energy+=B.energy/2;
+            return B;
+        } else if (rollA < rollB){
+            B.energy+=A.energy/2;
+            return A;
+        } else{
+            int random = getRandomInt(2);
+            if (random == 0){
+                A.energy += B.energy/2;
+                return B;
+            } else{
+                B.energy += A.energy/2;
+                return A;
+            }
+        }
+    }
+
+    private static boolean removeDead(){
+        boolean didOneDie = false;
+        List<Critter> toRemove = new ArrayList<>();
+        for (Critter critter: population){
+            if (critter.energy <= 0) {
+                didOneDie = true;
+                removeFromWorld(critter);
+                toRemove.add(critter);
+            }
+        }
+        for (Critter critter: toRemove){
+            population.remove(critter);
+        }
+        return didOneDie;
     }
 
     public static void displayWorld() {
@@ -280,18 +404,34 @@ public abstract class Critter {
         System.out.println(stringBuilder.toString());
     }
 
-    private static void addToWorld(Critter critter){
-        world.get(critter.y_coord*Params.world_width + critter.x_coord).add(critter);
-    }
 
     private static int convertTo1D(int x, int y){
         int result = y*Params.world_width+x;
         return result;
     }
 
-    private static void fight(Critter OP1, Critter OP2){
-
+    private static void addToWorld(Critter critter){
+        world.get(convertTo1D(critter.x_coord, critter.y_coord)).add(critter);
+        hasWalked.get(convertTo1D(critter.x_coord, critter.y_coord)).add(false);
     }
+
+    private static void removeFromWorld(Critter critter){
+        int index = world.get(convertTo1D(critter.x_coord, critter.y_coord)).indexOf(critter);
+        world.get(convertTo1D(critter.x_coord, critter.y_coord)).remove(index);
+        hasWalked.get(convertTo1D(critter.x_coord, critter.y_coord)).remove(index);
+    }
+
+    private static void markAsWalked(Critter critter){
+        int index = world.get(convertTo1D(critter.x_coord, critter.y_coord)).indexOf(critter);
+        hasWalked.get(convertTo1D(critter.x_coord, critter.y_coord)).set(index, true);
+    }
+
+    private static boolean checkIfWalked(Critter critter){
+        int index = world.get(convertTo1D(critter.x_coord, critter.y_coord)).indexOf(critter);
+        boolean result = hasWalked.get(convertTo1D(critter.x_coord, critter.y_coord)).get(index);
+        return result;
+    }
+
 
 }
 
