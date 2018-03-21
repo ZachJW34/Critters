@@ -32,7 +32,6 @@ public class A4SampleTest2 {
 		Params.rest_energy_cost = 1;
 		Params.min_reproduce_energy = 20;
 		Params.refresh_algae_count = 0;
-
 		Params.photosynthesis_energy_amount = 1;
 		Params.start_energy = 100;
 		TestCritter.clearWorld();

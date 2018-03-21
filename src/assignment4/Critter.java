@@ -14,7 +14,6 @@ package assignment4;
 
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 /* see the PDF for descriptions of the methods and fields in this class
@@ -72,6 +71,7 @@ public abstract class Critter {
             energy-=Params.walk_energy_cost;
             return;
         } else if (isFighter){
+            System.out.println("DEBUG");
             int prevX = x_coord;
             int prevY = y_coord;
             move(this, direction, 1);
@@ -79,6 +79,7 @@ public abstract class Critter {
                 x_coord = prevX;
                 y_coord = prevY;
             } else{
+                System.out.println("DEBUG");
                 x_coord = prevX;
                 y_coord = prevY;
                 energy-=Params.walk_energy_cost;
@@ -122,7 +123,7 @@ public abstract class Critter {
         if (direction == 7 || direction == 0 || direction == 1){
             critter.x_coord = (critter.x_coord +distance)%Params.world_width;
         }
-        if (direction == 3 || direction ==4 || direction == 6){
+        if (direction == 3 || direction ==4 || direction == 5){
             critter.x_coord-=distance;
             if (critter.x_coord < 0){
                 critter.x_coord+=Params.world_width;
@@ -165,6 +166,9 @@ public abstract class Critter {
      * @throws InvalidCritterException
      */
     public static void makeCritter(String critter_class_name) throws InvalidCritterException {
+        if (critter_class_name.length() !=0 && Character.isLowerCase(critter_class_name.charAt(0))){
+            throw new InvalidCritterException(critter_class_name);
+        }
         try {
             Class critterClass = Class.forName(myPackage + '.' + critter_class_name);
             Critter critter = (Critter) critterClass.newInstance();
@@ -175,7 +179,6 @@ public abstract class Critter {
             addToWorld(critter);
             hasWalked.get(convertTo1D(critter.x_coord, critter.y_coord));
         } catch (ClassNotFoundException | IllegalAccessException | InstantiationException | NoClassDefFoundError e) {
-            e.printStackTrace();
             throw new InvalidCritterException(critter_class_name);
         }
     }
@@ -190,7 +193,7 @@ public abstract class Critter {
     public static List<Critter> getInstances(String critter_class_name) throws InvalidCritterException {
         List<Critter> result = new java.util.ArrayList<Critter>();
         try {
-            Class critterClass = Class.forName(critter_class_name);
+            Class critterClass = Class.forName(myPackage + "." + critter_class_name);
             for (Critter critter : population) {
                 if (critterClass.equals(critter.getClass())) {
                     result.add(critter);
@@ -243,11 +246,15 @@ public abstract class Critter {
         }
 
         protected void setX_coord(int new_x_coord) {
+            Critter.removeFromWorld(this);
             super.x_coord = new_x_coord;
+            Critter.addToWorld(this);
         }
 
         protected void setY_coord(int new_y_coord) {
+            Critter.removeFromWorld(this);
             super.y_coord = new_y_coord;
+            Critter.addToWorld(this);
         }
 
         protected int getX_coord() {
@@ -284,8 +291,9 @@ public abstract class Critter {
      */
     public static void clearWorld() {
         population.clear();
-        for (List<Critter> list: world){
-            list.clear();
+        for (int i=0; i<world.size(); i++){
+            world.get(i).clear();
+            hasWalked.get(i).clear();
         }
     }
 
@@ -314,7 +322,7 @@ public abstract class Critter {
             addToWorld(critter);
             population.add(critter);
         }
-        babies = new ArrayList<>();
+        babies.clear();
 
         for (int i=0; i<Params.refresh_algae_count; i++){
             try {
@@ -326,6 +334,8 @@ public abstract class Critter {
 
         for (Critter critter: population){
             critter.energy-=Params.rest_energy_cost;
+            int index = world.get(convertTo1D(critter.x_coord, critter.y_coord)).indexOf(critter);
+            hasWalked.get(convertTo1D(critter.x_coord,critter.y_coord)).set(index, false);
         }
 
         removeDead();
@@ -429,6 +439,9 @@ public abstract class Critter {
     private static boolean checkIfWalked(Critter critter){
         int index = world.get(convertTo1D(critter.x_coord, critter.y_coord)).indexOf(critter);
         boolean result = hasWalked.get(convertTo1D(critter.x_coord, critter.y_coord)).get(index);
+        if (result == true){
+            System.out.println("DEBUG");
+        }
         return result;
     }
 

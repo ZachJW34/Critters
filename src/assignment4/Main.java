@@ -12,6 +12,7 @@ package assignment4;
  * Fall 2016
  */
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -75,80 +76,121 @@ public class Main {
         String in = "";
         List<String> commands = new ArrayList<>();
         while (!in.equals("quit")){
-            System.out.print("Enter Command here:");
             in = kb.nextLine();
             String [] command = in.split("\\s+", -2);
             switch (command[0]){
                 case "show":
+                    if (command.length != 1) {
+                        System.out.println("error processing: " + errorToString(command));
+                        break;
+                    }
                     Critter.displayWorld();
                     break;
+
                 case "make":
-                    if (command.length <2){
-                        System.out.println("Must specify class to make e.g. make Craig.");
-                    } else{
-                        if (command.length == 2) {
-                            try {
-                                for (int i = 0; i < 25; i++) {
-                                    Critter.makeCritter(command[1]);
-                                }
-                                for (int i = 0; i < 100; i++) {
-                                    Critter.makeCritter("Algae");
-                                }
-                            } catch (InvalidCritterException e) {
-                                System.out.println(e.toString());
-                            }
-                        } else {
-                            try{
-                                int count = Integer.parseInt(command[2]);
-                                for (int i=0; i<count; i++){
-                                    Critter.makeCritter(command[1]);
-                                }
-                            } catch (NumberFormatException | InvalidCritterException e){
-                                System.out.println(e.toString());
-                            }
+                    if (command.length == 2) {
+                        try {
+                            Critter.makeCritter(command[1]);
+                        } catch (InvalidCritterException e) {
+                            System.out.println("error processing: " + errorToString(command));
                         }
+                    } else if (command.length == 3) {
+                        try{
+                            int count = Integer.parseInt(command[2]);
+                            if (count <=0 ){
+                                System.out.println("error processing: " + errorToString(command));
+                                break;
+                            }
+                            for (int i=0; i<count; i++){
+                                Critter.makeCritter(command[1]);
+                            }
+                        } catch (NumberFormatException | InvalidCritterException e){
+                            System.out.println("error processing: " + errorToString(command));
+                        }
+                    } else{
+                        System.out.println("error processing: " + errorToString(command));
                     }
                     break;
+
                 case "step":
                     if (command.length ==1){
                         Critter.worldTimeStep();
                     } else if (command.length == 2){
                         try {
                             int count = Integer.parseInt(command[1]);
+                            if (count <=0 ){
+                                System.out.println("error processing: " + errorToString(command));
+                                break;
+                            }
                             for (int i=0; i<count; i++){
                                 Critter.worldTimeStep();
                             }
                         } catch (NumberFormatException e){
-                            System.out.println("Count is formatted incorrectly");
+                            System.out.println("error processing: " + errorToString(command));
                         }
                     } else{
-                        System.out.println("Arguments for step are incorrectly formatted.");
+                        System.out.println("error processing: " + errorToString(command));
                     }
                     break;
+
                 case "clear":
-                    Critter.clearWorld();
+                    if (command.length == 1) {
+                        Critter.clearWorld();
+                    } else{
+                        System.out.println("error processing: " + errorToString(command));
+                    }
                     break;
+
+                case "stats":
+                    if (command.length == 2){
+                        try{
+                            String myPackage = Critter.class.getPackage().toString().split(" ")[1];
+                            Class myClass = Class.forName(myPackage + "." + command[1]);
+                            List<Critter> critterList = new ArrayList<>();
+                            critterList = Critter.getInstances(command[1]);
+                            myClass.getMethod("runStats", List.class).invoke(null, critterList);
+                        } catch (InvalidCritterException | ClassNotFoundException | NoSuchMethodException |
+                                IllegalAccessException | InvocationTargetException e){
+                            System.out.println("error processing: " + errorToString(command));
+                        }
+                    }
+                    break;
+
+                case "seed":
+                    if (command.length == 2){
+                        try{
+                            int result = Integer.parseInt(command[1]);
+                            Critter.setSeed(result);
+                        } catch (NumberFormatException e){
+                            System.out.println("error processing: " + errorToString(command));
+                        }
+                    } else {
+                        System.out.println("error processing: " + errorToString(command));
+                    }
+                    break;
+
+                default:
+                    if (command[0].equals("quit") && command.length == 1){
+                        continue;
+                    } else {
+                        System.out.println("invalid command: " + errorToString(command));
+                    }
             }
         }
-        /*
-        try {
-            for (int i=0; i<5; i++){
-                Critter.makeCritter(MyCritter1.class.getName());
-            }
-            Critter.makeCritter(Algae.class.getName());
-            Critter.makeCritter(Algae.class.getName());
-
-            ArrayList<Critter> critters = new ArrayList<>(Critter.getInstances(MyCritter1.class.getName()));
-        } catch ( InvalidCritterException e ){
-            System.out.println(e.toString());
-        }
-
-        Critter.displayWorld();
-        Critter.worldTimeStep();
-        Critter.displayWorld();
+        System.out.println();
 
         /* Write your code above */
         System.out.flush();
 
+    }
+
+    private static String errorToString (String[] commands){
+        StringBuilder stringBuilder = new StringBuilder();
+        for (String string: commands){
+            stringBuilder.append(string);
+            stringBuilder.append(" ");
+        }
+        stringBuilder.deleteCharAt(stringBuilder.length()-1);
+        return stringBuilder.toString();
     }
 }
