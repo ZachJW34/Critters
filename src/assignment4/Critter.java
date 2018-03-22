@@ -68,7 +68,7 @@ public abstract class Critter {
 
     /**
      * Normally Overrided method of its subclasses
-     * @return
+     * @return a blank string
      */
     public String toString() {
         return "";
@@ -91,7 +91,7 @@ public abstract class Critter {
      *          <li> If the Critter is a fighter and HAS moved (can't move and get deducted for trying)</li>
      *          <li> If the Critter is a fighter and has not moved, but tries to move into an occupied position</li>
      *      </ul>
-     * @param direction
+     * @param direction is the direction to move in
      */
     protected final void walk(int direction) {
         boolean isFighter = (fighters[0] == this || fighters[1] == this);
@@ -127,7 +127,7 @@ public abstract class Critter {
      *          <li> If the Critter is a fighter and HAS moved (can't move and get deducted for trying)</li>
      *          <li> If the Critter is a fighter and has not moved, but tries to move into an occupied position</li>
      *      </ul>
-     * @param direction
+     * @param direction is the direction to move in
      */
     protected final void run(int direction) {
         boolean isFighter = (fighters[0] == this || fighters[1] == this);
@@ -212,8 +212,8 @@ public abstract class Critter {
      * upper. For example, if craig is supplied instead of Craig, an error is thrown instead of
      * an Exception.)
      *
-     * @param critter_class_name
-     * @throws InvalidCritterException
+     * @param critter_class_name is the simple class name for a Critter.
+     * @throws InvalidCritterException if the class doesn't exist an other errors
      */
     public static void makeCritter(String critter_class_name) throws InvalidCritterException {
         if (critter_class_name.length() !=0 && Character.isLowerCase(critter_class_name.charAt(0))){
@@ -238,7 +238,7 @@ public abstract class Critter {
      *
      * @param critter_class_name What kind of Critter is to be listed.  Unqualified class name.
      * @return List of Critters.
-     * @throws InvalidCritterException
+     * @throws InvalidCritterException if simple name doesn't match a defined class
      */
     public static List<Critter> getInstances(String critter_class_name) throws InvalidCritterException {
         List<Critter> result = new java.util.ArrayList<Critter>();
@@ -412,7 +412,7 @@ public abstract class Critter {
      * rewarded with 1/2 of the opposing Critter's energy rounded down, and the loser will be removed from the simulation. If
      * both Critters roll the same number, or both 0, then the winner will be chosen randomly.
      * @param A is a {@link Critter} that will be fighting
-     * @param A is a {@link Critter} that will be fighting
+     * @param B is a {@link Critter} that will be fighting
      * @return a Critter that has lost and needs to be removed, or null if a Critter either died for trying to run away or successfully ran away
      */
     private static Critter battle(Critter A, Critter B){
