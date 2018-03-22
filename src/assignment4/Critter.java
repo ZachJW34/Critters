@@ -2,12 +2,9 @@ package assignment4;
 /* CRITTERS Critter.java
  * EE422C Project 4 submission by
  * Replace <...> with your actual data.
- * <Student1 Name>
- * <Student1 EID>
- * <Student1 5-digit Unique No.>
- * <Student2 Name>
- * <Student2 EID>
- * <Student2 5-digit Unique No.>
+ * Zachary Williams
+ * zw3622
+ * 15470
  * Slip days used: <0>
  * Fall 2016
  */
@@ -24,11 +21,20 @@ import java.util.List;
 
 public abstract class Critter {
     private static String myPackage;
+
+    //Contains all Critters
     private static List<Critter> population = new java.util.ArrayList<Critter>();
+
+    //Temporarily stores reproduced critters
     private static List<Critter> babies = new java.util.ArrayList<Critter>();
 
+    //Stores all Critters in population with reference to where they are in a 2D grid
     private static List<List<Critter>> world = new ArrayList<>(Params.world_width*Params.world_height);
+
+    //Stores whether each Critter has walked or not
     private static List<List<Boolean>> hasWalked = new ArrayList<>(Params.world_width*Params.world_height);
+
+    //Stores the current critters that are fighting
     private static Critter[] fighters = new Critter[2];
 
     // Gets the package name.  This assumes that Critter and its subclasses are all in the same package.
@@ -42,16 +48,28 @@ public abstract class Critter {
 
     private static java.util.Random rand = new java.util.Random();
 
+    /**
+     * Random number generator function to allow reproducibility
+     * @param max defines the range of numbers that can be returned from 0 - (max-1)
+     * @return a randomly generated int
+     */
     public static int getRandomInt(int max) {
         return rand.nextInt(max);
     }
 
+    /**
+     * Sets the seed of the random number generator
+     * @param new_seed is the seed to set
+     */
     public static void setSeed(long new_seed) {
         rand = new java.util.Random(new_seed);
     }
 
 
-    /* a one-character long string that visually depicts your critter in the ASCII interface */
+    /**
+     * Normally Overrided method of its subclasses
+     * @return
+     */
     public String toString() {
         return "";
     }
@@ -65,13 +83,22 @@ public abstract class Critter {
     private int x_coord;
     private int y_coord;
 
+    /**
+     * Walk method for a Critter. Will call {@link #move(Critter, int, int)} to move the Critter one space. Conditionals
+     * to check to see if the Critter:
+     *      <ul>
+     *          <li> If the Critter is a fighter and has not moved (thus they can move)</li>
+     *          <li> If the Critter is a fighter and HAS moved (can't move and get deducted for trying)</li>
+     *          <li> If the Critter is a fighter and has not moved, but tries to move into an occupied position</li>
+     *      </ul>
+     * @param direction
+     */
     protected final void walk(int direction) {
         boolean isFighter = (fighters[0] == this || fighters[1] == this);
         if ( isFighter && checkIfWalked(this)){
             energy-=Params.walk_energy_cost;
             return;
         } else if (isFighter){
-            System.out.println("DEBUG");
             int prevX = x_coord;
             int prevY = y_coord;
             move(this, direction, 1);
@@ -79,7 +106,6 @@ public abstract class Critter {
                 x_coord = prevX;
                 y_coord = prevY;
             } else{
-                System.out.println("DEBUG");
                 x_coord = prevX;
                 y_coord = prevY;
                 energy-=Params.walk_energy_cost;
@@ -93,6 +119,16 @@ public abstract class Critter {
         markAsWalked(this);
     }
 
+    /**
+     * Walk method for a Critter. Will call {@link #move(Critter, int, int)} to move the Critter two spaces. Conditionals
+     * to check to see if the Critter:
+     *      <ul>
+     *          <li> If the Critter is a fighter and has not moved (thus they can move)</li>
+     *          <li> If the Critter is a fighter and HAS moved (can't move and get deducted for trying)</li>
+     *          <li> If the Critter is a fighter and has not moved, but tries to move into an occupied position</li>
+     *      </ul>
+     * @param direction
+     */
     protected final void run(int direction) {
         boolean isFighter = (fighters[0] == this || fighters[1] == this);
         if ( isFighter && checkIfWalked(this)){
@@ -119,6 +155,13 @@ public abstract class Critter {
         markAsWalked(this);
     }
 
+    /**
+     * Moves the critter in the specified direction with specified distance. Critter can move in 8 different directions
+     * with 0 being E, 1 = NE, 2 = N, 3 = NW, 4 = W, 5 = SW, 6 = S, 7 = SE.
+     * @param critter is the Critter to move
+     * @param direction is the direction to move the critter
+     * @param distance the distance to move the critter ( 1 for walk, 2 for run)
+     */
     private static void move(Critter critter, int direction, int distance){
         if (direction == 7 || direction == 0 || direction == 1){
             critter.x_coord = (critter.x_coord +distance)%Params.world_width;
@@ -141,6 +184,13 @@ public abstract class Critter {
 
     }
 
+    /**
+     * New Critter offspring is given an x and y coordinate based on the direction passed and can be placed on top of
+     * another pre-existing critter. Added to babies list which will be added to population after {@link #worldTimeStep()}
+     * @param offspring is the new offspring with attributes based off the parent. Child will have 1/2 of parent's energy rounded down.
+     *                  Parent will have its energy reduced by 1/2 rounded up.
+     * @param direction is the direction to place the child Critter
+     */
     protected final void reproduce(Critter offspring, int direction) {
         offspring.energy = this.energy/2;
         this.energy = (int) Math.ceil((double)this.energy/2);
@@ -297,6 +347,19 @@ public abstract class Critter {
         }
     }
 
+    /**
+     * Handles all of the logic of a Critter interacting with its environment. Flow is:
+     *      <ul>
+     *          <li>Calling {@link #doTimeStep()} on every Critter in population</li>
+     *          <li>Removing creatures that died after {@link #doTimeStep()}</li>
+     *          <li>Searching through the grid to check if any Critters occupy the same site.
+     *          The Critters in this spot will then fight until only one (or none) Critter remains</li>
+     *          <li>Adding the reproduced babies to the population</li>
+     *          <li>Adding more {@link Algae}</li> critters based on {@link Params}
+     *          <li>Reducing all the Critters in population's energy for resting</li>
+     *          <li>Culling any Critters whose energy fell below zero</li>
+     *      </ul>
+     */
     public static void worldTimeStep() {
         for (Critter critter : population) {
             critter.doTimeStep();
@@ -342,6 +405,16 @@ public abstract class Critter {
 
     }
 
+    /**
+     * Battle between two Critters. Critters that do not want to fight can try to run away if they have not moved yet.
+     * If a Critter tries to run away and fails, it will fight the opposing Critter with a roll of 0. If any of the Critters
+     * decide to fight, then they roll a number between 0 - (Critter.energy-1). Whichever Critter has the higher roll will be
+     * rewarded with 1/2 of the opposing Critter's energy rounded down, and the loser will be removed from the simulation. If
+     * both Critters roll the same number, or both 0, then the winner will be chosen randomly.
+     * @param A is a {@link Critter} that will be fighting
+     * @param A is a {@link Critter} that will be fighting
+     * @return a Critter that has lost and needs to be removed, or null if a Critter either died for trying to run away or successfully ran away
+     */
     private static Critter battle(Critter A, Critter B){
         boolean action1 = A.fight(B.toString());
         boolean action2 = B.fight(A.toString());
@@ -371,6 +444,10 @@ public abstract class Critter {
         }
     }
 
+    /**
+     * Searches through the population to see if any of the Critter's energy fell below zero.
+     * @return a true if a Critter died, false if not.
+     */
     private static boolean removeDead(){
         boolean didOneDie = false;
         List<Critter> toRemove = new ArrayList<>();
@@ -387,6 +464,9 @@ public abstract class Critter {
         return didOneDie;
     }
 
+    /**
+     * View component of the simulation. Prints the world to System.out containing all critters in the simulation
+     */
     public static void displayWorld() {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append('+');
@@ -414,37 +494,56 @@ public abstract class Critter {
         System.out.println(stringBuilder.toString());
     }
 
-
+    /**
+     * Converts a 2D position to 1D
+     * @param x is the x-coordinate
+     * @param y is the y-coordinate
+     * @return y*(world width) + x
+     */
     private static int convertTo1D(int x, int y){
         int result = y*Params.world_width+x;
         return result;
     }
 
+    /**
+     * Adds a Critter to the world map according to it's (x,y) position as well as a corresponding boolean false to the
+     * hasWalked list to denote that the critter has not moved
+     * @param critter is the Critter to add to the world
+     */
     private static void addToWorld(Critter critter){
         world.get(convertTo1D(critter.x_coord, critter.y_coord)).add(critter);
         hasWalked.get(convertTo1D(critter.x_coord, critter.y_coord)).add(false);
     }
 
+    /**
+     * Removes a Critter from the world as well as its corresponding walk boolean from the hasWalked list
+     * @param critter is the Critter to remove from the world
+     */
     private static void removeFromWorld(Critter critter){
         int index = world.get(convertTo1D(critter.x_coord, critter.y_coord)).indexOf(critter);
         world.get(convertTo1D(critter.x_coord, critter.y_coord)).remove(index);
         hasWalked.get(convertTo1D(critter.x_coord, critter.y_coord)).remove(index);
     }
 
+    /**
+     * Mark that a critter has walked by setting it's boolean flag to true
+     * @param critter
+     */
     private static void markAsWalked(Critter critter){
         int index = world.get(convertTo1D(critter.x_coord, critter.y_coord)).indexOf(critter);
         hasWalked.get(convertTo1D(critter.x_coord, critter.y_coord)).set(index, true);
     }
 
+    /**
+     * Checks the Critters boolean flag to see if it has walked
+     * @param critter is the Critter to check
+     * @return a true if walked, false if not
+     */
     private static boolean checkIfWalked(Critter critter){
         int index = world.get(convertTo1D(critter.x_coord, critter.y_coord)).indexOf(critter);
         boolean result = hasWalked.get(convertTo1D(critter.x_coord, critter.y_coord)).get(index);
-        if (result == true){
-            System.out.println("DEBUG");
-        }
         return result;
     }
-
 
 }
 

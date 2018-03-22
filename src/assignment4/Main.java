@@ -5,9 +5,6 @@ package assignment4;
  * Zachary Williams
  * zw3622
  * 15470
- * <Student2 Name>
- * <Student2 EID>
- * <Student2 5-digit Unique No.>
  * Slip days used: <0>
  * Fall 2016
  */
@@ -75,9 +72,16 @@ public class Main {
 
         String in = "";
         List<String> commands = new ArrayList<>();
+        //While the command entered is not quit, keep running simulation
         while (!in.equals("quit")){
             in = kb.nextLine();
+            //Split based off of whitespace
             String [] command = in.split("\\s+", -2);
+
+            /*Switch based off of all commands (show, make, step, seed, stats). Will default and print out
+                an invalid command error if the first command does not match those listed. Furthermore, if the first command
+                is entered correctly but the arguments are incorrect, will print out error processing error.
+             */
             switch (command[0]){
                 case "show":
                     if (command.length != 1) {
@@ -133,21 +137,12 @@ public class Main {
                     }
                     break;
 
-                case "clear":
-                    if (command.length == 1) {
-                        Critter.clearWorld();
-                    } else{
-                        System.out.println("error processing: " + errorToString(command));
-                    }
-                    break;
-
                 case "stats":
                     if (command.length == 2){
                         try{
                             String myPackage = Critter.class.getPackage().toString().split(" ")[1];
                             Class myClass = Class.forName(myPackage + "." + command[1]);
-                            List<Critter> critterList = new ArrayList<>();
-                            critterList = Critter.getInstances(command[1]);
+                            List<Critter> critterList = Critter.getInstances(command[1]);
                             myClass.getMethod("runStats", List.class).invoke(null, critterList);
                         } catch (InvalidCritterException | ClassNotFoundException | NoSuchMethodException |
                                 IllegalAccessException | InvocationTargetException e){
@@ -184,6 +179,11 @@ public class Main {
 
     }
 
+    /**
+     * Helper for printing out an error.
+     * @param commands is an array containing strings that caused an error
+     * @return a complete string of all elements in array commands
+     */
     private static String errorToString (String[] commands){
         StringBuilder stringBuilder = new StringBuilder();
         for (String string: commands){

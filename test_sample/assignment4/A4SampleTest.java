@@ -60,7 +60,7 @@ public class A4SampleTest{
 		//Remove final keyword from Params.java
 
 		Params.world_width = 20;
-		Params.world_width = 20;
+		Params.world_height= 20;
 		Params.walk_energy_cost = 2;
 		Params.run_energy_cost = 5;
 		Params.rest_energy_cost = 1;
