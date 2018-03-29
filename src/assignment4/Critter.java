@@ -381,11 +381,11 @@ public abstract class Critter {
             }
         }
 
-        for (Critter critter: babies){
-            addToWorld(critter);
-            population.add(critter);
+        for (Critter critter: population){
+            critter.energy-=Params.rest_energy_cost;
+            int index = world.get(convertTo1D(critter.x_coord, critter.y_coord)).indexOf(critter);
+            hasWalked.get(convertTo1D(critter.x_coord,critter.y_coord)).set(index, false);
         }
-        babies.clear();
 
         for (int i=0; i<Params.refresh_algae_count; i++){
             try {
@@ -395,11 +395,11 @@ public abstract class Critter {
             }
         }
 
-        for (Critter critter: population){
-            critter.energy-=Params.rest_energy_cost;
-            int index = world.get(convertTo1D(critter.x_coord, critter.y_coord)).indexOf(critter);
-            hasWalked.get(convertTo1D(critter.x_coord,critter.y_coord)).set(index, false);
+        for (Critter critter: babies){
+            addToWorld(critter);
+            population.add(critter);
         }
+        babies.clear();
 
         removeDead();
 
