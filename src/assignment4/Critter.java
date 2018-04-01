@@ -84,43 +84,23 @@ public abstract class Critter {
     private int y_coord;
 
     /**
-     * Walk method for a Critter. Will call {@link #move(Critter, int, int)} to move the Critter one space. Conditionals
-     * to check to see if the Critter:
-     *      <ul>
-     *          <li> If the Critter is a fighter and has not moved (thus they can move)</li>
-     *          <li> If the Critter is a fighter and HAS moved (can't move and get deducted for trying)</li>
-     *          <li> If the Critter is a fighter and has not moved, but tries to move into an occupied position</li>
-     *      </ul>
-     * @param direction is the direction to move in
+     * Method to have Critter run.
+     * @param direction is the direction to move the critter in the world.
      */
     protected final void walk(int direction) {
-        boolean isFighter = (fighters[0] == this || fighters[1] == this);
-        if ( isFighter && checkIfWalked(this)){
-            energy-=Params.walk_energy_cost;
-            return;
-        } else if (isFighter){
-            int prevX = x_coord;
-            int prevY = y_coord;
-            move(this, direction, 1);
-            if (world.get(convertTo1D(x_coord, y_coord)).isEmpty()){
-                x_coord = prevX;
-                y_coord = prevY;
-            } else{
-                x_coord = prevX;
-                y_coord = prevY;
-                energy-=Params.walk_energy_cost;
-                return;
-            }
-        }
-        removeFromWorld(this);
-        move(this, direction, 1);
-        energy-=Params.walk_energy_cost;
-        addToWorld(this);
-        markAsWalked(this);
+        moveConditionals(direction, 1, Params.walk_energy_cost);
     }
 
     /**
-     * Walk method for a Critter. Will call {@link #move(Critter, int, int)} to move the Critter two spaces. Conditionals
+     * Method to have Critter run.
+     * @param direction is the direction to move the critter in the world.
+     */
+    protected final void run(int direction) {
+        moveConditionals(direction, 2, Params.run_energy_cost);
+    }
+
+    /**
+     * Walk/run method for a Critter. Will call {@link #move(Critter, int, int)} to move the Critter one/two spaces. Conditionals
      * to check to see if the Critter:
      *      <ul>
      *          <li> If the Critter is a fighter and has not moved (thus they can move)</li>
@@ -129,28 +109,28 @@ public abstract class Critter {
      *      </ul>
      * @param direction is the direction to move in
      */
-    protected final void run(int direction) {
+    private void moveConditionals(int direction, int distance, int energyCost){
         boolean isFighter = (fighters[0] == this || fighters[1] == this);
         if ( isFighter && checkIfWalked(this)){
-            energy-=Params.run_energy_cost;
+            energy-=energyCost;
             return;
         } else if (isFighter){
             int prevX = x_coord;
             int prevY = y_coord;
-            move(this, direction, 2);
+            move(this, direction, distance);
             if (world.get(convertTo1D(x_coord, y_coord)).isEmpty()){
                 x_coord = prevX;
                 y_coord = prevY;
             } else{
                 x_coord = prevX;
                 y_coord = prevY;
-                energy-=Params.run_energy_cost;
+                energy-=energyCost;
                 return;
             }
         }
         removeFromWorld(this);
-        move(this, direction, 2);
-        energy-=Params.run_energy_cost;
+        move(this, direction, distance);
+        energy-=energyCost;
         addToWorld(this);
         markAsWalked(this);
     }
@@ -216,7 +196,7 @@ public abstract class Critter {
      * @throws InvalidCritterException if the class doesn't exist an other errors
      */
     public static void makeCritter(String critter_class_name) throws InvalidCritterException {
-        if (critter_class_name.length() !=0 && Character.isLowerCase(critter_class_name.charAt(0))){
+        if (critter_class_name.length() != 0 && Character.isLowerCase(critter_class_name.charAt(0))){
             throw new InvalidCritterException(critter_class_name);
         }
         try {
@@ -341,7 +321,7 @@ public abstract class Critter {
      */
     public static void clearWorld() {
         population.clear();
-        for (int i=0; i<world.size(); i++){
+        for (int i = 0; i < world.size(); i++){
             world.get(i).clear();
             hasWalked.get(i).clear();
         }
@@ -368,7 +348,7 @@ public abstract class Critter {
         removeDead();
 
         for (List<Critter> critterList: world){
-            while (critterList.size() >=2){
+            while (critterList.size() >= 2){
                 fighters[0] = critterList.get(0);
                 fighters[1] = critterList.get(1);
                 Critter loser = battle(fighters[0], fighters[1]);
@@ -387,7 +367,7 @@ public abstract class Critter {
             hasWalked.get(convertTo1D(critter.x_coord,critter.y_coord)).set(index, false);
         }
 
-        for (int i=0; i<Params.refresh_algae_count; i++){
+        for (int i = 0; i < Params.refresh_algae_count; i++){
             try {
                 makeCritter(Algae.class.getSimpleName());
             } catch (InvalidCritterException e){
@@ -419,7 +399,7 @@ public abstract class Critter {
         boolean action1 = A.fight(B.toString());
         boolean action2 = B.fight(A.toString());
         boolean didOneDie = removeDead();
-        if ((A.x_coord != B.x_coord) || (A.y_coord !=B.y_coord) || didOneDie){
+        if ((A.x_coord != B.x_coord) || (A.y_coord != B.y_coord) || didOneDie){
             return null;
         }
 
@@ -470,13 +450,13 @@ public abstract class Critter {
     public static void displayWorld() {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append('+');
-        for (int i=0; i<Params.world_width; i++){
+        for (int i = 0; i < Params.world_width; i++){
             stringBuilder.append('-');
         }
         stringBuilder.append("+\n");
-        for (int y=0; y<Params.world_height; y++){
+        for (int y = 0; y < Params.world_height; y++){
             stringBuilder.append('|');
-            for (int x=0; x<Params.world_width; x++){
+            for (int x = 0; x < Params.world_width; x++){
                 List<Critter> temp = world.get(convertTo1D(x,y));
                 if (temp.isEmpty()){
                     stringBuilder.append(" ");
@@ -487,7 +467,7 @@ public abstract class Critter {
             stringBuilder.append("|\n");
         }
         stringBuilder.append('+');
-        for (int i=0; i<Params.world_width; i++){
+        for (int i = 0; i < Params.world_width; i++){
             stringBuilder.append('-');
         }
         stringBuilder.append("+");

@@ -45,7 +45,7 @@ public class Critter2 extends Critter {
             dir = (dir+1)%8;
             moves = 0;
         }
-        if (totalMoves>=radius*8){
+        if (totalMoves >= radius*8){
             dir = getRandomInt(8);
             int roll = getRandomInt(8);
             while (radius == roll || roll == 0){
@@ -88,7 +88,7 @@ public class Critter2 extends Critter {
             Critter2 critter2 = (Critter2) critter;
             totalCircles+=critter2.getCircles();
         }
-        System.out.print("" + totalCircles + " total tiles moved    ");
+        System.out.print("" + totalCircles + " total circles    ");
         System.out.println();
 
     }
